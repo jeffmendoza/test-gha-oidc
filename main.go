@@ -21,7 +21,7 @@ func main() {
 	tokenURL := os.Args[1]
 	clientID := os.Args[2]
 
-	client := http.Client{
+	client := &http.Client{
 		Transport: &loggingTransport{},
 	}
 
@@ -30,7 +30,7 @@ func main() {
 	if !providers.Enabled(ctx) {
 		log.Fatalf("incorrect environment")
 	}
-	token, err := providers.Provide(ctx, "guac")
+	token, err := providers.Provide(ctx, tokenURL)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -41,6 +41,7 @@ func main() {
 
 	var conf oauth2.Config
 	conf.Endpoint.TokenURL = tokenURL
+	conf.Endpoint.AuthStyle = oauth2.AuthStyleInParams
 	options := []oauth2.AuthCodeOption{
 		oauth2.SetAuthURLParam("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
 		oauth2.SetAuthURLParam("assertion", token),
@@ -80,6 +81,7 @@ func main() {
 type loggingTransport struct{}
 
 func (s *loggingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	fmt.Println("Logging Transport")
 	bytes, _ := httputil.DumpRequestOut(r, true)
 
 	resp, err := http.DefaultTransport.RoundTrip(r)
