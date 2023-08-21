@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
+	"net/http/httputil"
 	"os"
 
 	"github.com/sigstore/cosign/v2/pkg/providers"
@@ -18,7 +21,12 @@ func main() {
 	tokenURL := os.Args[1]
 	clientID := os.Args[2]
 
-	ctx := context.Background()
+	client := http.Client{
+		Transport: &loggingTransport{},
+	}
+
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
+
 	if !providers.Enabled(ctx) {
 		log.Fatalf("incorrect environment")
 	}
@@ -67,4 +75,20 @@ func main() {
 	// }
 	// tok, err = conf.Exchange(ctx, "", options...)
 
+}
+
+type loggingTransport struct{}
+
+func (s *loggingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	bytes, _ := httputil.DumpRequestOut(r, true)
+
+	resp, err := http.DefaultTransport.RoundTrip(r)
+	// err is returned after dumping the response
+
+	respBytes, _ := httputil.DumpResponse(resp, true)
+	bytes = append(bytes, respBytes...)
+
+	fmt.Printf("%s\n", bytes)
+
+	return resp, err
 }
