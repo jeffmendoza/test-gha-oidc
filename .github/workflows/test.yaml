@@ -10,4 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v4
-    - run: go run .
+    - env:
+        TOKENURL: ${{ secrets.TokenURL }}
+        CLIENTID: ${{ secrets.ClientID }}
+      run: go run . ${TOKENURL} ${CLIENTID}
